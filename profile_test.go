@@ -21,7 +21,13 @@ func TestProfile(t *testing.T) {
 	}
 	defer os.Remove(f.Name())
 
-	var profileTests = []struct {
+	d, err := os.MkdirTemp("", "profile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(d)
+
+	profileTests := []struct {
 		name   string
 		code   string
 		checks []checkFn
@@ -34,7 +40,7 @@ import "github.com/pkg/profile"
 
 func main() {
 	defer profile.Start().Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -50,7 +56,7 @@ import "github.com/pkg/profile"
 
 func main() {
 	defer profile.Start(profile.MemProfile).Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -66,7 +72,7 @@ import "github.com/pkg/profile"
 
 func main() {
 	defer profile.Start(profile.MemProfileRate(2048)).Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -83,7 +89,7 @@ import "github.com/pkg/profile"
 func main() {
 	profile.Start()
 	profile.Start()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -99,7 +105,7 @@ import "github.com/pkg/profile"
 
 func main() {
 	defer profile.Start(profile.BlockProfile).Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -131,7 +137,7 @@ import "github.com/pkg/profile"
 
 func main() {
 	defer profile.Start(profile.ProfilePath(".")).Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -147,7 +153,7 @@ import "github.com/pkg/profile"
 
 func main() {
 		defer profile.Start(profile.ProfilePath("` + f.Name() + `")).Stop()
-}	
+}
 `,
 		checks: []checkFn{
 			NoStdout,
@@ -192,9 +198,57 @@ import "github.com/pkg/profile"
 
 func main() {
         defer profile.Start(profile.Quiet).Stop()
-}       
+}
 `,
 		checks: []checkFn{NoStdout, NoStderr, NoErr},
+	}, {
+		name: "profile filename",
+		code: `
+package main
+
+import "github.com/pkg/profile"
+
+func main() {
+	defer profile.Start(profile.ProfileFilename("cpu.out")).Stop()
+}
+`,
+		checks: []checkFn{
+			NoStdout,
+			Stderr("/cpu.out"),
+			NoErr,
+		},
+	}, {
+		name: "profile filename error",
+		code: `
+package main
+
+import "github.com/pkg/profile"
+
+func main() {
+		defer profile.Start(profile.ProfileFilename("../name")).Stop()
+}
+`,
+		checks: []checkFn{
+			NoStdout,
+			Stderr(" filename must not contain path elements"),
+			Err,
+		},
+	}, {
+		name: "profile filename and path",
+		code: `
+package main
+
+import "github.com/pkg/profile"
+
+func main() {
+	defer profile.Start(profile.ProfileFilename("cpu.out"),profile.ProfilePath("` + d + `")).Stop()
+}
+`,
+		checks: []checkFn{
+			NoStdout,
+			Stderr("profile: cpu profiling enabled, " + d + "/cpu.out"),
+			NoErr,
+		},
 	}}
 	for _, tt := range profileTests {
 		t.Log(tt.name)

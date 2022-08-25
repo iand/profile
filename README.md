@@ -50,6 +50,12 @@ Several convenience package level values are provided for cpu, memory, and block
 
 For more complex options, consult the [documentation](http://godoc.org/github.com/pkg/profile).
 
+changes from upstream
+---------------------
+
+ - New `ProfileFilename` option to override the name of the profile file.
+
+
 contributing
 ------------
 
